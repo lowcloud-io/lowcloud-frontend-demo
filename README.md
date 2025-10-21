@@ -112,30 +112,31 @@ src/
 
 ## Deployment
 
-### Docker
+### podman
 
-Build and run with Docker:
+Build and run with podman:
 
 ```bash
 # Build with API URL
-docker build \
+podman build \
+  --name lowcloud-frontend \
   --build-arg VITE_API_BASE_URL=https://api.yourdomain.com \
   -t lowcloud-frontend-demo .
 
 # Run container
-docker run -p 80:80 lowcloud-frontend-demo
+podman run -d -p 8080:80 lowcloud-frontend-demo
 ```
 
 ### Example for different environments:
 
 ```bash
 # Staging
-docker build \
+podman build \
   --build-arg VITE_API_BASE_URL=https://api-staging.yourdomain.com \
   -t lowcloud-frontend-demo:staging .
 
 # Production
-docker build \
+podman build \
   --build-arg VITE_API_BASE_URL=https://api.yourdomain.com \
   -t lowcloud-frontend-demo:production .
 ```

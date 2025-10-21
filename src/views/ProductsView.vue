@@ -18,15 +18,55 @@ const products = ref<Product[]>([])
 const loading = ref(true)
 const error = ref<string | null>(null)
 
-onMounted(async () => {
+// Create form state
+const newProduct = ref({ name: '', description: '', price: 0, stock: 0 })
+const creating = ref(false)
+const createError = ref<string | null>(null)
+const createSuccess = ref(false)
+
+const loadProducts = async () => {
   try {
     loading.value = true
+    error.value = null
     products.value = await api.getProducts()
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Failed to fetch products'
   } finally {
     loading.value = false
   }
+}
+
+const createProduct = async () => {
+  if (!newProduct.value.name || newProduct.value.price <= 0) {
+    createError.value = 'Name and valid price are required'
+    return
+  }
+
+  try {
+    creating.value = true
+    createError.value = null
+    createSuccess.value = false
+    await api.createProduct(
+      newProduct.value.name,
+      newProduct.value.description,
+      newProduct.value.price,
+      newProduct.value.stock,
+    )
+    createSuccess.value = true
+    newProduct.value = { name: '', description: '', price: 0, stock: 0 }
+    await loadProducts()
+    setTimeout(() => {
+      createSuccess.value = false
+    }, 3000)
+  } catch (e) {
+    createError.value = e instanceof Error ? e.message : 'Failed to create product'
+  } finally {
+    creating.value = false
+  }
+}
+
+onMounted(() => {
+  loadProducts()
 })
 
 const formatPrice = (price: number) => {
@@ -41,6 +81,93 @@ const formatPrice = (price: number) => {
         <h1 class="text-4xl font-bold text-white mb-3">Products</h1>
         <p class="text-slate-400">Product catalog and inventory</p>
       </div>
+
+      <!-- Create Product Form -->
+      <Card class="glass-card mb-6">
+        <CardHeader>
+          <CardTitle class="text-white">Create New Product</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form @submit.prevent="createProduct" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label for="name" class="block text-sm font-medium text-slate-300 mb-2">
+                  Name
+                </label>
+                <input
+                  id="name"
+                  v-model="newProduct.name"
+                  type="text"
+                  placeholder="Enter product name"
+                  class="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-white/20 focus:border-transparent"
+                  :disabled="creating"
+                />
+              </div>
+              <div>
+                <label for="description" class="block text-sm font-medium text-slate-300 mb-2">
+                  Description
+                </label>
+                <input
+                  id="description"
+                  v-model="newProduct.description"
+                  type="text"
+                  placeholder="Enter description"
+                  class="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-white/20 focus:border-transparent"
+                  :disabled="creating"
+                />
+              </div>
+              <div>
+                <label for="price" class="block text-sm font-medium text-slate-300 mb-2">
+                  Price (€)
+                </label>
+                <input
+                  id="price"
+                  v-model.number="newProduct.price"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="0.00"
+                  class="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-white/20 focus:border-transparent"
+                  :disabled="creating"
+                />
+              </div>
+              <div>
+                <label for="stock" class="block text-sm font-medium text-slate-300 mb-2">
+                  Stock
+                </label>
+                <input
+                  id="stock"
+                  v-model.number="newProduct.stock"
+                  type="number"
+                  min="0"
+                  placeholder="0"
+                  class="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-white/20 focus:border-transparent"
+                  :disabled="creating"
+                />
+              </div>
+            </div>
+
+            <div v-if="createError" class="p-3 bg-red-500/20 border border-red-500/30 rounded-lg">
+              <p class="text-red-400 text-sm">{{ createError }}</p>
+            </div>
+
+            <div
+              v-if="createSuccess"
+              class="p-3 bg-green-500/20 border border-green-500/30 rounded-lg"
+            >
+              <p class="text-green-400 text-sm">Product created successfully!</p>
+            </div>
+
+            <button
+              type="submit"
+              :disabled="creating"
+              class="px-6 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {{ creating ? 'Creating...' : 'Create Product' }}
+            </button>
+          </form>
+        </CardContent>
+      </Card>
 
       <Card class="glass-card">
         <CardHeader>

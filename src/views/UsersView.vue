@@ -18,15 +18,50 @@ const users = ref<User[]>([])
 const loading = ref(true)
 const error = ref<string | null>(null)
 
-onMounted(async () => {
+// Create form state
+const newUser = ref({ username: '', email: '' })
+const creating = ref(false)
+const createError = ref<string | null>(null)
+const createSuccess = ref(false)
+
+const loadUsers = async () => {
   try {
     loading.value = true
+    error.value = null
     users.value = await api.getUsers()
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Failed to fetch users'
   } finally {
     loading.value = false
   }
+}
+
+const createUser = async () => {
+  if (!newUser.value.username || !newUser.value.email) {
+    createError.value = 'Username and email are required'
+    return
+  }
+
+  try {
+    creating.value = true
+    createError.value = null
+    createSuccess.value = false
+    await api.createUser(newUser.value.username, newUser.value.email)
+    createSuccess.value = true
+    newUser.value = { username: '', email: '' }
+    await loadUsers()
+    setTimeout(() => {
+      createSuccess.value = false
+    }, 3000)
+  } catch (e) {
+    createError.value = e instanceof Error ? e.message : 'Failed to create user'
+  } finally {
+    creating.value = false
+  }
+}
+
+onMounted(() => {
+  loadUsers()
 })
 </script>
 
@@ -37,6 +72,64 @@ onMounted(async () => {
         <h1 class="text-4xl font-bold text-white mb-3">Users</h1>
         <p class="text-slate-400">User management and directory</p>
       </div>
+
+      <!-- Create User Form -->
+      <Card class="glass-card mb-6">
+        <CardHeader>
+          <CardTitle class="text-white">Create New User</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form @submit.prevent="createUser" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label for="username" class="block text-sm font-medium text-slate-300 mb-2">
+                  Username
+                </label>
+                <input
+                  id="username"
+                  v-model="newUser.username"
+                  type="text"
+                  placeholder="Enter username"
+                  class="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-white/20 focus:border-transparent"
+                  :disabled="creating"
+                />
+              </div>
+              <div>
+                <label for="email" class="block text-sm font-medium text-slate-300 mb-2">
+                  Email
+                </label>
+                <input
+                  id="email"
+                  v-model="newUser.email"
+                  type="email"
+                  placeholder="Enter email"
+                  class="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-white/20 focus:border-transparent"
+                  :disabled="creating"
+                />
+              </div>
+            </div>
+
+            <div v-if="createError" class="p-3 bg-red-500/20 border border-red-500/30 rounded-lg">
+              <p class="text-red-400 text-sm">{{ createError }}</p>
+            </div>
+
+            <div
+              v-if="createSuccess"
+              class="p-3 bg-green-500/20 border border-green-500/30 rounded-lg"
+            >
+              <p class="text-green-400 text-sm">User created successfully!</p>
+            </div>
+
+            <button
+              type="submit"
+              :disabled="creating"
+              class="px-6 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {{ creating ? 'Creating...' : 'Create User' }}
+            </button>
+          </form>
+        </CardContent>
+      </Card>
 
       <Card class="glass-card">
         <CardHeader>
