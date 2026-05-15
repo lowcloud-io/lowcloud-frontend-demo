@@ -140,4 +140,3 @@ podman build \
   --build-arg VITE_API_BASE_URL=https://api.yourdomain.com \
   -t lowcloud-frontend-demo:production .
 ```
-
